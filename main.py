@@ -4,36 +4,78 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 
+lang_code = "en"
+
+# Define translations
+translations = {
+    "en": {
+        "data_url":"https://olympics.com/en/paris-2024/medals",
+        "page_title": "Olympics Ranking",
+        "last_updated": "Last Updated",
+        "reload_data": "Reload Data",
+        "medals_explanation": r'''
+            ### Explanation of Weighted Gold Score Calculation
+            The **Weighted Gold Score** is calculated to provide a more balanced ranking by considering the relative value of each medal type. 
+            The formula used is:
+            $\text{Weighted Gold Score}=\text{Gold Medals} + \frac{\text{Silver Medals}}{2} + \frac{\text{Bronze Medals}}{3}$.
+        ''',
+        "error_parsing": "Error parsing element: ",
+        "failed_retrieve": "Failed to retrieve the webpage. Status code: ",
+        "sorted_by_medals": "Sorted by Number of Medals",
+        "sorted_by_weighted_score": "Sorted by Weighted Gold Score",
+        "rank_change": "Rank Change from Medals to Weighted Score",
+    },
+    "fr": {
+        "data_url":"https://olympics.com/fr/paris-2024/medailles",
+        "page_title": "Classement Olympique",
+        "last_updated": "Dernière mise à jour",
+        "reload_data": "Recharger les données",
+        "medals_explanation": r'''
+            ### Explication du calcul du score en or pondéré
+            Le **score en or pondéré** est calculé pour fournir un classement plus équilibré en considérant la valeur relative de chaque type de médaille. 
+            La formule utilisée est :
+            $\text{Score en or pondéré}=\text{Médailles d'or} + \frac{\text{Médailles d'argent}}{2} + \frac{\text{Médailles de bronze}}{3}$.
+        ''',
+        "error_parsing": "Erreur lors de l'analyse de l'élément : ",
+        "failed_retrieve": "Échec de la récupération de la page Web. Code de statut : ",
+        "sorted_by_medals": "Trié par nombre de médailles",
+        "sorted_by_weighted_score": "Trié par score en or pondéré",
+        "rank_change": "Changement de classement des médailles au score pondéré",
+    }
+}
+
+# Configure page
 st.set_page_config(
-    page_title="Olympics Ranking",
+    page_title=translations[lang_code]["page_title"],
     page_icon="🎖️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-with st.sidebar:
 
+# Select language
+lang = st.sidebar.radio("Select Language / Sélectionnez la langue", ("English", "Français"))
+
+# Map selected language to dictionary keys
+lang_code = "en" if lang == "English" else "fr"
+
+
+with st.sidebar:
     # Initialize session state for last updated time if not already present
     if 'last_updated' not in st.session_state:
         st.session_state['last_updated'] = None
 
     # Add a button to reload the data
-    if st.button("Reload Data"):
+    if st.button(translations[lang_code]["reload_data"]):
         st.rerun()
     # Display the last updated time
-    st.info(f"Last Updated {st.session_state['last_updated']}")
+    st.info(f"{translations[lang_code]['last_updated']} {st.session_state['last_updated']}")
 
     # Explanation of the weighted calculation
-    latext = r'''
-    ### Explanation of Weighted Gold Score Calculation
-    The **Weighted Gold Score** is calculated to provide a more balanced ranking by considering the relative value of each medal type. 
-    The formula used is:
-    $\text{Weighted Gold Score}=\text{Gold Medals} + \frac{\text{Silver Medals}}{2} + \frac{\text{Bronze Medals}}{3}$.
-    '''
-    st.info(latext)
+    st.info(translations[lang_code]["medals_explanation"])
 
 # Retrieve the webpage
-response = requests.get("https://olympics.com/fr/paris-2024/medailles", impersonate="chrome")
+response = requests.get(translations[lang_code]["data_url"], impersonate="chrome")
 
 if response.status_code == 200:
     # Parse the HTML content using BeautifulSoup
@@ -64,7 +106,7 @@ if response.status_code == 200:
 
         except (AttributeError, IndexError, ValueError) as e:
             # Handle any parsing errors
-            st.error(f"Error parsing element: {e}")
+            st.error(f"{translations[lang_code]['error_parsing']} {e}")
 
     # Update the last updated time
     st.session_state['last_updated'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -123,15 +165,15 @@ if response.status_code == 200:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Sorted by Number of Medals")
+        st.subheader(translations[lang_code]["sorted_by_medals"])
         st.dataframe(sorted_by_medals_df)
 
     with col2:
-        st.subheader("Sorted by Weighted Gold Score")
+        st.subheader(translations[lang_code]["sorted_by_weighted_score"])
         st.dataframe(sorted_by_weighted_score_df)
 
-    st.subheader("Rank Change from Medals to Weighted Score")
+    st.subheader(translations[lang_code]["rank_change"])
     st.dataframe(styled_merged_df)
 
 else:
-    st.error(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+    st.error(f"{translations[lang_code]['failed_retrieve']} {response.status_code}")
